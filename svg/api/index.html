@@ -1,19 +1,27 @@
-module.exports = (req, res) => {
-  const query = req.query;
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>动态 SVG Banner</title>
+</head>
+<body>
+  <script>
+    // 从 URL 读取参数
+    const params = new URLSearchParams(window.location.search);
+    const width = params.get('w') || 854;
+    const height = params.get('h') || 180;
+    const title = params.get('title') || 'Welcome';
+    const subtitle = params.get('sub') || '快速构建现代化应用';
+    const bg = params.get('bg') || '#1a1a1a';
+    const color1 = params.get('c1') || '#5433FF';
+    const color2 = params.get('c2') || '#20BDFF';
+    const color3 = params.get('c3') || '#A5FECB';
+    const opacity = params.get('op') || 0.4;
+    const dur = params.get('dur') || 20;
+    const textColor = params.get('tc') || '#fff';
 
-  const width = query.w || 854;
-  const height = query.h || 180;
-  const title = query.title || 'Welcome';
-  const subtitle = query.sub || '快速构建现代化应用';
-  const bg = query.bg || '#1a1a1a';
-  const color1 = query.c1 || '#5433FF';
-  const color2 = query.c2 || '#20BDFF';
-  const color3 = query.c3 || '#A5FECB';
-  const opacity = query.op || 0.4;
-  const dur = query.dur || 20;
-  const textColor = query.tc || '#fff';
-
-  const svg = `
+    // 生成 SVG
+    const svg = `
 <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" style="background:${bg};">
   <style>
     .text{font-size:40px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;}
@@ -40,7 +48,8 @@ module.exports = (req, res) => {
   <text text-anchor="middle" x="${width/2}" y="${height*0.55}" class="desc" fill="${textColor}">${subtitle}</text>
 </svg>`;
 
-  res.setHeader('Content-Type', 'image/svg+xml');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.end(svg);
-};
+    // 输出 SVG
+    document.write(svg);
+  </script>
+</body>
+</html>
