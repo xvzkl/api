@@ -2,7 +2,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "svg/api/index.js"
+      "dest": "/api/index.js"
     }
   ]
 }
