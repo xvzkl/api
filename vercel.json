@@ -1,1 +1,6 @@
-
+{
+  "build": {
+    "src": "svg-banner-api.js",
+    "use": "@vercel/node"
+  }
+}
