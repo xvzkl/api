@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SVG 动态横幅生成器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      min-height: 100vh;
+      color: #2d3748;
+      padding-bottom: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+    }
+
+    /* 顶部标题栏 - 毛玻璃 */
+    .header {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 8px 0;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      letter-spacing: 2px;
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    /* 主内容区网格布局 */
+    .main-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: auto auto auto;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    /* 卡片样式 - 毛玻璃效果 */
+    .card {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .card-icon {
+      font-size: 24px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid rgba(26, 32, 44, 0.2);
+    }
+
+    /* 表单项 */
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 2px solid rgba(26, 32, 44, 0.3);
+      border-radius: 8px;
+      font-size: 13px;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.85);
+      color: #1a202c;
+      height: 38px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .form-input:hover:not(:focus) {
+      border-color: rgba(26, 32, 44, 0.5);
+    }
+
+    input[type="color"].form-input {
+      height: 38px;
+      padding: 3px;
+      cursor: pointer;
+    }
+
+    /* 预览区域 - 毛玻璃效果 */
+    .preview-card {
+      grid-column: 1 / -1;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      padding: 18px;
+      text-align: center;
+      margin-bottom: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      max-height: none;
+      overflow: visible;
+    }
+
+    .preview-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .preview-label::before {
+      content: "👁";
+      font-size: 18px;
+    }
+
+    .preview-container {
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-radius: 12px;
+      padding: 16px;
+      display: inline-block;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      max-width: 100%;
+      overflow: auto;
+    }
+
+    #preview-box {
+      width: fit-content;
+      margin: 0 auto;
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+
+    #preview svg {
+      display: block;
+      width: auto !important;
+      height: auto !important;
+      max-width: none !important;
+    }
+
+    /* 操作按钮区域 - 毛玻璃效果 */
+    .action-card {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-primary {
+      padding: 12px 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+      letter-spacing: 1px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 12px 30px rgba(102, 126, 234, 0.45);
+    }
+
+    .btn-primary:active {
+      transform: translateY(-1px) scale(1.02);
+    }
+
+    /* 结果提示框 - 固定在右下角 */
+    .result-toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 176, 155, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      color: white;
+      padding: 18px 24px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.6;
+      display: none;
+      max-width: 380px;
+      box-shadow: 0 8px 32px rgba(0, 176, 155, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      z-index: 1000;
+      animation: slideInBottomRight 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes slideInBottomRight {
+      from {
+        opacity: 0;
+        transform: translateX(100px) translateY(50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) translateY(0);
+      }
+    }
+
+    .result-toast strong {
+      font-size: 15px;
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .result-toast .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .result-toast .info-label {
+      font-weight: 600;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+
+    .result-toast .copy-item {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: 100%;
+      text-align: left;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      word-break: break-all;
+      white-space: normal;
+      line-height: 1.4;
+    }
+
+    .result-toast .copy-item:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.02);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    .result-toast .copy-item:active {
+      transform: scale(0.98);
+    }
+
+    .result-toast .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+
+    .result-toast .close-btn:hover {
+      background: rgba(255, 255, 255, 0.35);
+      transform: rotate(90deg);
+    }
+
+    .result-toast .close-btn:active {
+      transform: rotate(90deg) scale(0.9);
+    }
+
+    /* 复制成功提示 */
+    .copy-success {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: white;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 2000;
+      display: none;
+      animation: fadeInOut 1s ease-in-out;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    @keyframes fadeInOut {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+      50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+    }
+
+    /* 响应式 */
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-card, .action-card {
+        padding: 16px;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .container {
+        padding: 0 12px;
+      }
+
+      .btn-primary {
+        padding: 12px 32px;
+        font-size: 14px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      /* 移动端提示框调整 */
+      .result-toast {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+      }
+    }
+
+    /* 滚动条美化 */
+    ::-webkit-scrollbar {
+      width: 12px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- 顶部标题 -->
+  <div class="header">
+    <div class="container">
+      <h1>✨ SVG 动态横幅生成器</h1>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="main-grid">
+      <!-- 预览区 -->
+      <div class="preview-card">
+        <div class="preview-label">实时预览效果</div>
+        <div class="preview-container">
+          <div id="preview"></div>
+        </div>
+      </div>
+
+      <!-- 文字设置 -->
+      <div class="card">
+        <span class="card-icon">📝</span>
+        <div class="card-title">文字内容</div>
+        <div class="form-group">
+          <label>主标题 Text</label>
+          <input id="title" class="form-input" value="欢迎使用" oninput="preview()">
+        </div>
+        <div class="form-group">
+          <label>副标题 Subtitle</label>
+          <input id="sub" class="form-input" value="快速构建现代化应用" oninput="preview()">
+        </div>
+      </div>
+
+      <!-- 尺寸设置 -->
+      <div class="card">
+        <span class="card-icon">📐</span>
+        <div class="card-title">画布尺寸</div>
+        <div class="form-group">
+          <label>宽度 Width (px)</label>
+          <input id="w" class="form-input" value="854" oninput="preview()">
+        </div>
+        <div class="form-group">
+          <label>高度 Height (px)</label>
+          <input id="h" class="form-input" value="180" oninput="preview()">
+        </div>
+      </div>
+
+      <!-- 渐变配色 -->
+      <div class="card">
+        <span class="card-icon">🌈</span>
+        <div class="card-title">渐变配色</div>
+        <div class="form-group">
+          <label>起始颜色 Color 1</label>
+          <input type="color" id="c1" class="form-input" value="#5433FF" oninput="preview()">
+        </div>
+        <div class="form-group">
+          <label>中间颜色 Color 2</label>
+          <input type="color" id="c2" class="form-input" value="#20BDFF" oninput="preview()">
+        </div>
+        <div class="form-group">
+          <label>结束颜色 Color 3</label>
+          <input type="color" id="c3" class="form-input" value="#A5FECB" oninput="preview()">
+        </div>
+        <div class="form-group">
+          <label>旋转角度 Rotation</label>
+          <select id="gradientDir" class="form-input" onchange="preview()">
+            <option value="0">0° 垂直向上</option>
+            <option value="90" selected>90° 水平向右</option>
+            <option value="180">180° 垂直向下</option>
+            <option value="270">270° 水平向左</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>波浪透明度 Opacity</label>
+          <input id="op" class="form-input" value="0.4" oninput="preview()">
+        </div>
+      </div>
+
+      <!-- 基础色彩 -->
+      <div class="card">
+        <span class="card-icon">🎨</span>
+        <div class="card-title">基础色彩</div>
+        <div class="form-group">
+          <label>背景色 Background</label>
+          <input type="color" id="bg" class="form-input" value="#0a0a0a" oninput="preview()">
+        </div>
+        <div class="form-group">
+          <label>文字色 Text Color</label>
+          <input type="color" id="tc" class="form-input" value="#ffffff" oninput="preview()">
+        </div>
+        <div class="form-group">
+          <label>动画周期 Duration (s)</label>
+          <input id="dur" class="form-input" value="20" oninput="preview()">
+        </div>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-card">
+        <button class="btn-primary" onclick="saveSvg()">💾 生成并保存 SVG</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生成成功提示框 - 独立组件 -->
+  <div class="result-toast" id="result">
+    <button class="close-btn" onclick="closeResult()">&times;</button>
+    <strong>✅ 生成成功！</strong>
+    <div class="info-row">
+      <span class="info-label">📄 文件:</span>
+      <span class="copy-item" onclick="copyToClipboard('fname-text', this)" id="fname-text"></span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">📁 路径:</span>
+      <span class="copy-item" onclick="copyToClipboard('fname-copy', this)" id="fname-copy"></span>
+    </div>
+  </div>
+
+  <script>
+    const BASE_URL = "https://xvzkl.github.io/api/";
+
+    // 实时预览函数
+    function preview() {
+      const opt = {
+        title: document.getElementById("title").value,
+        sub: document.getElementById("sub").value,
+        w: document.getElementById("w").value,
+        h: document.getElementById("h").value,
+        c1: document.getElementById("c1").value,
+        c2: document.getElementById("c2").value,
+        c3: document.getElementById("c3").value,
+        gradientDir: document.getElementById("gradientDir").value,
+        bg: document.getElementById("bg").value,
+        tc: document.getElementById("tc").value,
+        op: document.getElementById("op").value,
+        dur: document.getElementById("dur").value
+      };
+
+      // 生成SVG代码
+      const svgCode = `
+<svg width="${opt.w}" height="${opt.h}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${opt.w} ${opt.h}">
+<style>
+.text{font-size:40px;font-weight:700}
+.desc{font-size:20px;font-weight:500}
+.text,.desc{animation:fadeIn 1.2s ease-in-out forwards}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+<rect width="100%" height="100%" fill="${opt.bg}"/>
+<defs>
+<linearGradient id="g" gradientTransform="rotate(${opt.gradientDir})">
+<stop offset="0%" stop-color="${opt.c1}"/>
+<stop offset="50%" stop-color="${opt.c2}"/>
+<stop offset="100%" stop-color="${opt.c3}"/>
+</linearGradient>
+</defs>
+<path fill="url(#g)" opacity="${opt.op}">
+<animate attributeName="d" dur="${opt.dur}s" repeatCount="indefinite" values="M0 0L0 100Q${opt.w/4} 140 ${opt.w/2} 110T${opt.w} 135L${opt.w} 0Z;M0 0L0 125Q${opt.w/4} 140 ${opt.w/2} 120T${opt.w} 110L${opt.w} 0Z;M0 0L0 145Q${opt.w/4} 115 ${opt.w/2} 145T${opt.w} 110L${opt.w} 0Z;M0 0L0 100Q${opt.w/4} 140 ${opt.w/2} 110T${opt.w} 135L${opt.w} 0Z"/>
+</path>
+<path fill="url(#g)" opacity="${opt.op}">
+<animate attributeName="d" dur="${opt.dur}s" repeatCount="indefinite" begin="-${opt.dur/2}s" values="M0 0L0 115Q${opt.w/4} 160 ${opt.w/2} 130T${opt.w} 140L${opt.w} 0Z;M0 0L0 130Q${opt.w/4} 100 ${opt.w/2} 100T${opt.w} 120L${opt.w} 0Z;M0 0L0 125Q${opt.w/4} 105 ${opt.w/2} 130T${opt.w} 145L${opt.w} 0Z;M0 0L0 115Q${opt.w/4} 160 ${opt.w/2} 130T${opt.w} 140L${opt.w} 0Z"/>
+</path>
+<text text-anchor="middle" x="50%" y="35%" class="text" fill="${opt.tc}">${opt.title}</text>
+<text text-anchor="middle" x="50%" y="55%" class="desc" fill="${opt.tc}">${opt.sub}</text>
+</svg>`;
+
+      document.getElementById("preview").innerHTML = svgCode;
+    }
+
+    // 保存SVG文件
+    function saveSvg() {
+      const opt = {
+        w: document.getElementById("w").value,
+        h: document.getElementById("h").value,
+        title: document.getElementById("title").value,
+        sub: document.getElementById("sub").value,
+        c1: document.getElementById("c1").value,
+        c2: document.getElementById("c2").value,
+        c3: document.getElementById("c3").value,
+        gradientDir: document.getElementById("gradientDir").value,
+        bg: document.getElementById("bg").value,
+        tc: document.getElementById("tc").value,
+        op: document.getElementById("op").value,
+        dur: document.getElementById("dur").value
+      };
+
+      const svgCode = `
+<svg width="${opt.w}" height="${opt.h}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${opt.w} ${opt.h}">
+<style>
+.text{font-size:40px;font-weight:700}
+.desc{font-size:20px;font-weight:500}
+.text,.desc{animation:fadeIn 1.2s ease-in-out forwards}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
+<rect width="100%" height="100%" fill="${opt.bg}"/>
+<defs>
+<linearGradient id="g" gradientTransform="rotate(${opt.gradientDir})">
+<stop offset="0%" stop-color="${opt.c1}"/>
+<stop offset="50%" stop-color="${opt.c2}"/>
+<stop offset="100%" stop-color="${opt.c3}"/>
+</linearGradient>
+</defs>
+<path fill="url(#g)" opacity="${opt.op}">
+<animate attributeName="d" dur="${opt.dur}s" repeatCount="indefinite" values="M0 0L0 100Q${opt.w/4} 140 ${opt.w/2} 110T${opt.w} 135L${opt.w} 0Z;M0 0L0 125Q${opt.w/4} 140 ${opt.w/2} 120T${opt.w} 110L${opt.w} 0Z;M0 0L0 145Q${opt.w/4} 115 ${opt.w/2} 145T${opt.w} 110L${opt.w} 0Z;M0 0L0 100Q${opt.w/4} 140 ${opt.w/2} 110T${opt.w} 135L${opt.w} 0Z"/>
+</path>
+<path fill="url(#g)" opacity="${opt.op}">
+<animate attributeName="d" dur="${opt.dur}s" repeatCount="indefinite" begin="-${opt.dur/2}s" values="M0 0L0 115Q${opt.w/4} 160 ${opt.w/2} 130T${opt.w} 140L${opt.w} 0Z;M0 0L0 130Q${opt.w/4} 100 ${opt.w/2} 100T${opt.w} 120L${opt.w} 0Z;M0 0L0 125Q${opt.w/4} 105 ${opt.w/2} 130T${opt.w} 145L${opt.w} 0Z;M0 0L0 115Q${opt.w/4} 160 ${opt.w/2} 130T${opt.w} 140L${opt.w} 0Z"/>
+</path>
+<text text-anchor="middle" x="50%" y="35%" class="text" fill="${opt.tc}">${opt.title}</text>
+<text text-anchor="middle" x="50%" y="55%" class="desc" fill="${opt.tc}">${opt.sub}</text>
+</svg>`;
+
+      const fileName = `banner_${Date.now()}.svg`;
+      const savePath = `svg/${fileName}`;
+      const svgUrl = `${BASE_URL}${savePath}`;
+
+      // 创建并下载文件
+      const blob = new Blob([svgCode], { type: "image/svg+xml" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = savePath;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // 显示结果提示
+      document.getElementById("result").style.display = "block";
+      document.getElementById("fname-text").innerText = fileName;
+      document.getElementById("fname-copy").innerText = svgUrl;
+    }
+
+    // 关闭结果提示框
+    function closeResult() {
+      document.getElementById("result").style.display = "none";
+    }
+
+    // 复制到剪切板
+    function copyToClipboard(elementId, element) {
+      const text = element.innerText;
+      
+      navigator.clipboard.writeText(text).then(() => {
+        // 显示复制成功提示
+        showCopySuccess();
+        
+        // 临时改变元素样式
+        const originalBg = element.style.background;
+        element.style.background = 'rgba(255, 255, 255, 0.5)';
+        setTimeout(() => {
+          element.style.background = originalBg;
+        }, 300);
+      }).catch(err => {
+        console.error('复制失败:', err);
+        alert('复制失败，请手动复制');
+      });
+    }
+
+    // 显示复制成功提示
+    function showCopySuccess() {
+      const successToast = document.createElement('div');
+      successToast.className = 'copy-success';
+      successToast.innerText = '✅ 已复制到剪切板';
+      document.body.appendChild(successToast);
+      
+      setTimeout(() => {
+        successToast.remove();
+      }, 1000);
+    }
+
+    window.onload = preview;
+  </script>
+</body>
+</html>
